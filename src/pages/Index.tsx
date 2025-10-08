@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,6 +6,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import Icon from '@/components/ui/icon';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import VideoCall from '@/components/VideoCall';
+import CreateChannel from '@/components/CreateChannel';
 
 interface Message {
   id: number;
@@ -33,39 +35,38 @@ const Index = () => {
   const [textColor, setTextColor] = useState('#FFFFFF');
   const [bgColor, setBgColor] = useState('transparent');
   const [showProfile, setShowProfile] = useState(false);
+  const [showCreateChannel, setShowCreateChannel] = useState(false);
+  const [activeCall, setActiveCall] = useState<{ contact: any; type: 'video' | 'audio' } | null>(null);
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const chats: Chat[] = [
-    {
-      id: 1,
-      name: 'Александр Иванов',
-      username: '@alexander_dev',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alexander',
-      lastMessage: 'Привет! Как дела с проектом?',
-      time: '15:30',
-      unread: 2,
-      online: true,
-    },
-    {
-      id: 2,
-      name: 'YaSMS Bot',
-      username: '@yasms_official',
-      avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=YaSMS',
-      lastMessage: 'Добро пожаловать в YaSMS WEB!',
-      time: '14:20',
-      unread: 0,
-      online: true,
-    },
-    {
-      id: 3,
-      name: 'Мария Петрова',
-      username: '@maria_design',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Maria',
-      lastMessage: 'Отправила тебе файлы 📎',
-      time: '12:45',
-      unread: 0,
-      online: false,
-    },
-  ];
+  useEffect(() => {
+    loadChats();
+  }, []);
+
+  const loadChats = async () => {
+    try {
+      const response = await fetch('https://functions.poehali.dev/d7ad23c6-d630-4ac3-8afd-db3a23af6d7f?user_id=1');
+      const data = await response.json();
+      
+      const formattedChats = data.map((chat: any) => ({
+        id: chat.id,
+        name: chat.other_user_name || chat.title || 'Неизвестно',
+        username: chat.other_user_username || '',
+        avatar: chat.other_user_avatar || chat.avatar_url || '',
+        lastMessage: chat.last_message || '',
+        time: chat.last_message_time ? new Date(chat.last_message_time).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '',
+        unread: chat.unread_count || 0,
+        online: chat.other_user_status === 'online',
+      }));
+      
+      setChats(formattedChats);
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error loading chats:', error);
+      setIsLoading(false);
+    }
+  };
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -137,6 +138,7 @@ const Index = () => {
           variant="ghost"
           size="icon"
           className="w-12 h-12 hover:bg-[hsl(var(--messenger-card))] text-white"
+          onClick={() => setShowCreateChannel(true)}
         >
           <Icon name="Radio" size={24} />
         </Button>
@@ -145,6 +147,7 @@ const Index = () => {
           variant="ghost"
           size="icon"
           className="w-12 h-12 hover:bg-[hsl(var(--messenger-card))] text-white"
+          onClick={() => setShowCreateChannel(true)}
         >
           <Icon name="Bot" size={24} />
         </Button>
@@ -233,10 +236,20 @@ const Index = () => {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button variant="ghost" size="icon" className="text-white hover:bg-[hsl(var(--messenger-card))]">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="text-white hover:bg-[hsl(var(--messenger-card))]"
+                  onClick={() => setActiveCall({ contact: currentChat, type: 'audio' })}
+                >
                   <Icon name="Phone" size={20} />
                 </Button>
-                <Button variant="ghost" size="icon" className="text-white hover:bg-[hsl(var(--messenger-card))]">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="text-white hover:bg-[hsl(var(--messenger-card))]"
+                  onClick={() => setActiveCall({ contact: currentChat, type: 'video' })}
+                >
                   <Icon name="Video" size={20} />
                 </Button>
                 <Button variant="ghost" size="icon" className="text-white hover:bg-[hsl(var(--messenger-card))]">
@@ -406,6 +419,37 @@ const Index = () => {
 
           <Button className="w-full mt-6 bg-[#0088CC] hover:bg-[#2AABEE] text-white">Сохранить</Button>
         </div>
+      )}
+
+      {activeCall && (
+        <VideoCall
+          contact={{
+            name: activeCall.contact.name,
+            avatar: activeCall.contact.avatar,
+          }}
+          callType={activeCall.type}
+          onEndCall={() => setActiveCall(null)}
+        />
+      )}
+
+      {showCreateChannel && (
+        <CreateChannel
+          onClose={() => setShowCreateChannel(false)}
+          onCreate={async (data) => {
+            try {
+              const response = await fetch('https://functions.poehali.dev/d7ad23c6-d630-4ac3-8afd-db3a23af6d7f', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+              });
+              if (response.ok) {
+                loadChats();
+              }
+            } catch (error) {
+              console.error('Error creating chat:', error);
+            }
+          }}
+        />
       )}
     </div>
   );

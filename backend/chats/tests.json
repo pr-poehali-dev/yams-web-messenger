@@ -1,0 +1,30 @@
+{
+  "tests": [
+    {
+      "name": "Get user chats",
+      "method": "GET",
+      "path": "/?user_id=1",
+      "expectedStatus": 200,
+      "expectedBody": [],
+      "bodyMatcher": "type"
+    },
+    {
+      "name": "Create new chat",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "type": "group",
+        "title": "Test Group",
+        "description": "Test description",
+        "created_by": 1,
+        "members": [2, 3]
+      },
+      "expectedStatus": 201,
+      "expectedBody": {
+        "id": "number",
+        "message": "string"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
