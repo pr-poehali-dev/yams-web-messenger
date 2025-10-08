@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,7 +30,8 @@ interface Chat {
   online: boolean;
 }
 
-const Index = () => {
+const Chats = () => {
+  const navigate = useNavigate();
   const [selectedChat, setSelectedChat] = useState<number>(1);
   const [message, setMessage] = useState('');
   const [textColor, setTextColor] = useState('#FFFFFF');
@@ -39,10 +41,16 @@ const Index = () => {
   const [activeCall, setActiveCall] = useState<{ contact: any; type: 'video' | 'audio' } | null>(null);
   const [chats, setChats] = useState<Chat[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileChatOpen, setIsMobileChatOpen] = useState(false);
 
   useEffect(() => {
+    const user = localStorage.getItem('yasms_user');
+    if (!user) {
+      navigate('/');
+    }
     loadChats();
-  }, []);
+  }, [navigate]);
 
   const loadChats = async () => {
     try {
@@ -109,9 +117,14 @@ const Index = () => {
     }
   };
 
+  const handleChatSelect = (chatId: number) => {
+    setSelectedChat(chatId);
+    setIsMobileChatOpen(true);
+  };
+
   return (
     <div className="flex h-screen bg-[hsl(var(--messenger-dark-bg))] text-white overflow-hidden">
-      <div className="w-20 bg-[hsl(var(--messenger-darker-bg))] flex flex-col items-center py-4 space-y-6 border-r border-[hsl(var(--messenger-border))]">
+      <div className="hidden md:flex w-20 bg-[hsl(var(--messenger-darker-bg))] flex-col items-center py-4 space-y-6 border-r border-[hsl(var(--messenger-border))]">
         <div className="mb-4">
           <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#0088CC] to-[#2AABEE] flex items-center justify-center font-bold text-lg">
             YS
@@ -121,7 +134,8 @@ const Index = () => {
         <Button
           variant="ghost"
           size="icon"
-          className="w-12 h-12 hover:bg-[hsl(var(--messenger-card))] text-white"
+          onClick={() => navigate('/chats')}
+          className="w-12 h-12 hover:bg-[hsl(var(--messenger-card))] text-white bg-[hsl(var(--messenger-card))]"
         >
           <Icon name="MessageSquare" size={24} />
         </Button>
@@ -129,6 +143,7 @@ const Index = () => {
         <Button
           variant="ghost"
           size="icon"
+          onClick={() => navigate('/calls')}
           className="w-12 h-12 hover:bg-[hsl(var(--messenger-card))] text-white"
         >
           <Icon name="Phone" size={24} />
@@ -137,8 +152,8 @@ const Index = () => {
         <Button
           variant="ghost"
           size="icon"
+          onClick={() => navigate('/channels')}
           className="w-12 h-12 hover:bg-[hsl(var(--messenger-card))] text-white"
-          onClick={() => setShowCreateChannel(true)}
         >
           <Icon name="Radio" size={24} />
         </Button>
@@ -146,10 +161,10 @@ const Index = () => {
         <Button
           variant="ghost"
           size="icon"
-          className="w-12 h-12 hover:bg-[hsl(var(--messenger-card))] text-white"
           onClick={() => setShowCreateChannel(true)}
+          className="w-12 h-12 hover:bg-[hsl(var(--messenger-card))] text-white"
         >
-          <Icon name="Bot" size={24} />
+          <Icon name="Plus" size={24} />
         </Button>
 
         <div className="flex-1" />
@@ -157,8 +172,8 @@ const Index = () => {
         <Button
           variant="ghost"
           size="icon"
+          onClick={() => navigate('/settings')}
           className="w-12 h-12 hover:bg-[hsl(var(--messenger-card))] text-white"
-          onClick={() => setShowProfile(!showProfile)}
         >
           <Icon name="Settings" size={24} />
         </Button>
@@ -169,8 +184,20 @@ const Index = () => {
         </Avatar>
       </div>
 
-      <div className="w-80 bg-[hsl(var(--messenger-darker-bg))] flex flex-col border-r border-[hsl(var(--messenger-border))]">
+      <div className={`w-full md:w-80 bg-[hsl(var(--messenger-darker-bg))] flex flex-col border-r border-[hsl(var(--messenger-border))] ${isMobileChatOpen ? 'hidden md:flex' : 'flex'}`}>
         <div className="p-4">
+          <div className="flex items-center justify-between mb-4 md:hidden">
+            <h1 className="text-xl font-bold">YaSMS</h1>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="text-white"
+            >
+              <Icon name="Menu" size={24} />
+            </Button>
+          </div>
+
           <div className="relative">
             <Icon
               name="Search"
@@ -188,12 +215,12 @@ const Index = () => {
           {chats.map((chat) => (
             <div
               key={chat.id}
-              onClick={() => setSelectedChat(chat.id)}
+              onClick={() => handleChatSelect(chat.id)}
               className={`flex items-center gap-3 p-3 mx-2 rounded-lg cursor-pointer transition-all hover:bg-[hsl(var(--messenger-card))] ${
                 selectedChat === chat.id ? 'bg-[hsl(var(--messenger-card))]' : ''
               }`}
             >
-              <div className="relative">
+              <div className="relative flex-shrink-0">
                 <Avatar>
                   <AvatarImage src={chat.avatar} />
                   <AvatarFallback>{chat.name[0]}</AvatarFallback>
@@ -205,12 +232,12 @@ const Index = () => {
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-baseline">
                   <h3 className="font-semibold text-sm truncate">{chat.name}</h3>
-                  <span className="text-xs text-[hsl(var(--messenger-text-muted))]">{chat.time}</span>
+                  <span className="text-xs text-[hsl(var(--messenger-text-muted))] flex-shrink-0 ml-2">{chat.time}</span>
                 </div>
                 <p className="text-sm text-[hsl(var(--messenger-text-muted))] truncate">{chat.lastMessage}</p>
               </div>
               {chat.unread > 0 && (
-                <div className="w-5 h-5 rounded-full bg-[#0088CC] flex items-center justify-center text-xs font-semibold">
+                <div className="w-5 h-5 rounded-full bg-[#0088CC] flex items-center justify-center text-xs font-semibold flex-shrink-0">
                   {chat.unread}
                 </div>
               )}
@@ -219,54 +246,62 @@ const Index = () => {
         </ScrollArea>
       </div>
 
-      <div className="flex-1 flex flex-col">
+      <div className={`flex-1 flex flex-col ${!isMobileChatOpen ? 'hidden md:flex' : 'flex'}`}>
         {currentChat && (
           <>
-            <div className="h-16 bg-[hsl(var(--messenger-darker-bg))] border-b border-[hsl(var(--messenger-border))] flex items-center justify-between px-6">
+            <div className="h-16 bg-[hsl(var(--messenger-darker-bg))] border-b border-[hsl(var(--messenger-border))] flex items-center justify-between px-4 md:px-6">
               <div className="flex items-center gap-3">
-                <Avatar>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsMobileChatOpen(false)}
+                  className="md:hidden text-white"
+                >
+                  <Icon name="ArrowLeft" size={20} />
+                </Button>
+                <Avatar className="w-10 h-10">
                   <AvatarImage src={currentChat.avatar} />
                   <AvatarFallback>{currentChat.name[0]}</AvatarFallback>
                 </Avatar>
                 <div>
-                  <h2 className="font-semibold">{currentChat.name}</h2>
+                  <h2 className="font-semibold text-sm md:text-base">{currentChat.name}</h2>
                   <p className="text-xs text-[hsl(var(--messenger-text-muted))]">
                     {currentChat.online ? 'онлайн' : 'был(а) недавно'}
                   </p>
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-1 md:gap-2">
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="text-white hover:bg-[hsl(var(--messenger-card))]"
+                  className="text-white hover:bg-[hsl(var(--messenger-card))] w-10 h-10"
                   onClick={() => setActiveCall({ contact: currentChat, type: 'audio' })}
                 >
-                  <Icon name="Phone" size={20} />
+                  <Icon name="Phone" size={18} />
                 </Button>
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="text-white hover:bg-[hsl(var(--messenger-card))]"
+                  className="text-white hover:bg-[hsl(var(--messenger-card))] w-10 h-10"
                   onClick={() => setActiveCall({ contact: currentChat, type: 'video' })}
                 >
-                  <Icon name="Video" size={20} />
+                  <Icon name="Video" size={18} />
                 </Button>
-                <Button variant="ghost" size="icon" className="text-white hover:bg-[hsl(var(--messenger-card))]">
-                  <Icon name="MoreVertical" size={20} />
+                <Button variant="ghost" size="icon" className="text-white hover:bg-[hsl(var(--messenger-card))] w-10 h-10">
+                  <Icon name="MoreVertical" size={18} />
                 </Button>
               </div>
             </div>
 
-            <ScrollArea className="flex-1 p-6">
-              <div className="space-y-4">
+            <ScrollArea className="flex-1 p-4 md:p-6">
+              <div className="space-y-4 max-w-4xl mx-auto">
                 {messages.map((msg) => (
                   <div
                     key={msg.id}
                     className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'} animate-fade-in`}
                   >
                     <div
-                      className={`max-w-md px-4 py-2 rounded-2xl ${
+                      className={`max-w-[85%] md:max-w-md px-3 md:px-4 py-2 rounded-2xl ${
                         msg.sender === 'me'
                           ? 'bg-[#0088CC] text-white rounded-br-sm'
                           : 'bg-[hsl(var(--messenger-card))] text-white rounded-bl-sm'
@@ -276,7 +311,7 @@ const Index = () => {
                         color: msg.color || undefined,
                       }}
                     >
-                      <p className="break-words">{msg.text}</p>
+                      <p className="break-words text-sm md:text-base">{msg.text}</p>
                       <span className="text-xs opacity-70 mt-1 block">{msg.time}</span>
                     </div>
                   </div>
@@ -284,16 +319,16 @@ const Index = () => {
               </div>
             </ScrollArea>
 
-            <div className="p-4 bg-[hsl(var(--messenger-darker-bg))] border-t border-[hsl(var(--messenger-border))]">
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" className="text-white hover:bg-[hsl(var(--messenger-card))]">
-                  <Icon name="Paperclip" size={20} />
+            <div className="p-3 md:p-4 bg-[hsl(var(--messenger-darker-bg))] border-t border-[hsl(var(--messenger-border))]">
+              <div className="flex items-center gap-1 md:gap-2">
+                <Button variant="ghost" size="icon" className="text-white hover:bg-[hsl(var(--messenger-card))] w-9 h-9 md:w-10 md:h-10 flex-shrink-0">
+                  <Icon name="Paperclip" size={18} />
                 </Button>
 
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="ghost" size="icon" className="text-white hover:bg-[hsl(var(--messenger-card))]">
-                      <Icon name="Palette" size={20} />
+                    <Button variant="ghost" size="icon" className="text-white hover:bg-[hsl(var(--messenger-card))] w-9 h-9 md:w-10 md:h-10 flex-shrink-0">
+                      <Icon name="Palette" size={18} />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-64 bg-[hsl(var(--messenger-card))] border-[hsl(var(--messenger-border))]">
@@ -342,23 +377,23 @@ const Index = () => {
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                  className="flex-1 bg-[hsl(var(--messenger-card))] border-none text-white placeholder:text-[hsl(var(--messenger-text-muted))]"
+                  className="flex-1 bg-[hsl(var(--messenger-card))] border-none text-white placeholder:text-[hsl(var(--messenger-text-muted))] text-sm md:text-base"
                 />
 
-                <Button variant="ghost" size="icon" className="text-white hover:bg-[hsl(var(--messenger-card))]">
-                  <Icon name="Smile" size={20} />
+                <Button variant="ghost" size="icon" className="hidden md:flex text-white hover:bg-[hsl(var(--messenger-card))] w-10 h-10 flex-shrink-0">
+                  <Icon name="Smile" size={18} />
                 </Button>
 
-                <Button variant="ghost" size="icon" className="text-white hover:bg-[hsl(var(--messenger-card))]">
-                  <Icon name="Mic" size={20} />
+                <Button variant="ghost" size="icon" className="text-white hover:bg-[hsl(var(--messenger-card))] w-9 h-9 md:w-10 md:h-10 flex-shrink-0">
+                  <Icon name="Mic" size={18} />
                 </Button>
 
                 <Button
                   onClick={handleSendMessage}
-                  className="bg-[#0088CC] hover:bg-[#2AABEE] text-white"
+                  className="bg-[#0088CC] hover:bg-[#2AABEE] text-white w-9 h-9 md:w-10 md:h-10 flex-shrink-0"
                   size="icon"
                 >
-                  <Icon name="Send" size={20} />
+                  <Icon name="Send" size={18} />
                 </Button>
               </div>
             </div>
@@ -367,7 +402,7 @@ const Index = () => {
       </div>
 
       {showProfile && (
-        <div className="w-80 bg-[hsl(var(--messenger-darker-bg))] border-l border-[hsl(var(--messenger-border))] p-6 animate-fade-in">
+        <div className="absolute md:relative w-full md:w-80 h-full bg-[hsl(var(--messenger-darker-bg))] border-l border-[hsl(var(--messenger-border))] p-6 animate-fade-in z-40">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold">Профиль</h2>
             <Button
@@ -455,4 +490,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default Chats;
